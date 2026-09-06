@@ -1,0 +1,50 @@
+name: MENSA Kanto Watch
+
+on:
+  schedule:
+    # private repoのまま無料枠(月2000分)に収める場合は */20 以上を推奨。
+    # repoをpublicにするなら Actions は無料・無制限なので */5 でもOK。
+    - cron: "*/20 * * * *"
+  workflow_dispatch:
+    inputs:
+      test_notify:
+        description: "テスト通知を送る(true/false)"
+        required: false
+        default: "false"
+
+permissions:
+  contents: write   # state.json をリポジトリに書き戻すために必要
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run watcher
+        env:
+          TEST_NOTIFY: ${{ github.event.inputs.test_notify }}
+          EMAIL_ENABLED: "true"
+          EMAIL_SMTP_HOST: "smtp.gmail.com"
+          EMAIL_SMTP_PORT: "587"
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_APP_PASSWORD: ${{ secrets.EMAIL_APP_PASSWORD }}
+        run: python mensa_kanto_watch.py
+
+      - name: Commit updated state (if changed)
+        run: |
+          git config user.name "mensa-watch-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add mensa_state.json
+          git diff --cached --quiet || git commit -m "update state"
+          git push
