@@ -10,7 +10,7 @@ on:
       test_notify:
         description: "テスト通知を送る(true/false)"
         required: false
-        default: "true"
+        default: "false"
 
 permissions:
   contents: write   # state.json をリポジトリに書き戻すために必要
